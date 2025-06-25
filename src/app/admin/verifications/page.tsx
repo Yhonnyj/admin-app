@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { pusherClient } from "@/lib/pusher"; // Asegúrate de tener este import y que Pusher esté configurado
-import { motion, AnimatePresence } from "framer-motion"; // Importar Framer Motion
+import { motion, AnimatePresence, easeOut } from "framer-motion"; // Importar Framer Motion
 import {
   Loader2,
   CircleX,
@@ -145,39 +145,56 @@ const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/verificati
     );
   };
 
-  // Variantes de animación para Framer Motion
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
-  };
+ // Variantes de animación para Framer Motion
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: easeOut, // ✅ corregido
+    },
+  },
+};
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-  };
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.3,
+    },
+  },
+};
 
-  return (
-    <div className="relative min-h-screen bg-gray-950 text-white p-8 font-inter overflow-hidden">
-      {/* Fondo con degradado sutil y animado */}
-      <div className="absolute inset-0 z-0 opacity-10 animate-pulse-light" style={{
-        background: 'radial-gradient(circle at top left, #10B981, transparent), radial-gradient(circle at bottom right, #6366F1, transparent)',
-      }}></div>
+return (
+  <div className="relative min-h-screen bg-gray-950 text-white p-8 font-inter overflow-hidden">
+    {/* Fondo con degradado sutil y animado */}
+    <div
+      className="absolute inset-0 z-0 opacity-10 animate-pulse-light"
+      style={{
+        background:
+          "radial-gradient(circle at top left, #10B981, transparent), radial-gradient(circle at bottom right, #6366F1, transparent)",
+      }}
+    ></div>
 
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="relative z-10 max-w-7xl mx-auto"
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="relative z-10 max-w-7xl mx-auto"
+    >
+      {/* Título animado */}
+      <motion.h1
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="text-4xl md:text-5xl font-extrabold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500 drop-shadow-lg"
       >
-        {/* Título animado */}
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-4xl md:text-5xl font-extrabold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500 drop-shadow-lg"
-        >
-          Panel de Verificaciones
-        </motion.h1>
+        Panel de Verificaciones
+      </motion.h1>
 
         {/* Estados de carga, error y sin resultados */}
         {loading ? (
