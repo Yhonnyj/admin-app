@@ -30,23 +30,26 @@ export default function AdminDashboardPage() {
   const paginatedOrders = filteredOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
 
-  useEffect(() => {
-    const fetchInitialOrders = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/orders`);
-        if (!res.ok) throw new Error("Error cargando órdenes");
-        const data: Order[] = await res.json();
-        setOrders(data);
-      } catch (err) {
-        const error = err as Error;
-        setError(error.message || "Error desconocido");
-        toast.error(`Error: ${error.message}`);
-      } finally {
-        setLoading(false);
-      }
-    };
+useEffect(() => {
+  const fetchInitialOrders = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/orders`, {
+        method: "GET",
+        credentials: "include", // 👈 ESTE CAMBIO
+      });
+      if (!res.ok) throw new Error("Error cargando órdenes");
+      const data: Order[] = await res.json();
+      setOrders(data);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || "Error desconocido");
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
     fetchInitialOrders();
   }, []);
@@ -85,29 +88,37 @@ export default function AdminDashboardPage() {
   }, [search, orders]);
 
   const updateStatus = async (orderId: string, newStatus: OrderStatus) => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/orders/${orderId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (!res.ok) throw new Error("Error actualizando estado");
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/orders/${orderId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        // Importante para incluir cookies de sesión con Clerk
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ status: newStatus }),
+      credentials: "include", // ← Asegura que se manden las cookies de Clerk
+    });
 
-      const updatedOrder: Order = await res.json();
+    if (!res.ok) throw new Error("Error actualizando estado");
 
-      if (selectedOrderDetails?.id === updatedOrder.id) {
-        setSelectedOrderDetails({ ...selectedOrderDetails, status: updatedOrder.status });
-      }
+    const updatedOrder: Order = await res.json();
 
-      setOrders((prev) =>
-        prev.map((o) => (o.id === updatedOrder.id ? { ...updatedOrder, user: o.user } : o))
-      );
-      toast.success(`Orden ${orderId.substring(0, 8)}... actualizada a ${newStatus}.`);
-    } catch (err) {
-      const error = err as Error;
-      toast.error(`Error al actualizar: ${error.message}`);
+    if (selectedOrderDetails?.id === updatedOrder.id) {
+      setSelectedOrderDetails({ ...selectedOrderDetails, status: updatedOrder.status });
     }
-  };
+
+    setOrders((prev) =>
+      prev.map((o) => (o.id === updatedOrder.id ? { ...updatedOrder, user: o.user } : o))
+    );
+
+    toast.success(`Orden ${orderId.substring(0, 8)}... actualizada a ${newStatus}.`);
+  } catch (err) {
+    const error = err as Error;
+    toast.error(`Error al actualizar: ${error.message}`);
+  }
+};
+
 
   const handleOpenChat = (order: Order) => {
     setSelectedOrderDetails(order);
