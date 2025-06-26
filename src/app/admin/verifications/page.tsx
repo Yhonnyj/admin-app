@@ -38,16 +38,24 @@ export default function AdminVerificationsPage() {
   // Nuevo estado para la URL de la imagen en pantalla completa
   const [fullScreenImageUrl, setFullScreenImageUrl] = useState<string | null>(null);
 
-// Función para obtener las verificaciones desde la API
+// ✅ Función para obtener las verificaciones desde la API
 const fetchVerifications = async () => {
   setLoading(true);
   setError(null);
+
   try {
-const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/verifications`);
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/verifications`,
+      {
+        credentials: "include", // Importante para que Clerk y CORS funcionen
+      }
+    );
+
     if (!res.ok) {
       const errorData = await res.json();
       throw new Error(errorData.error || "Error al cargar las verificaciones.");
     }
+
     const data: VerificationItem[] = await res.json();
     setVerifications(data);
   } catch (err: unknown) {
@@ -60,19 +68,26 @@ const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/verificati
   }
 };
 
-
-   const updateStatus = async (id: string, status: "APPROVED" | "REJECTED") => {
-    try {
-const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/verifications/${id}/status`, {
+// ✅ Función para actualizar estado de verificación (APPROVED / REJECTED)
+const updateStatus = async (id: string, status: "APPROVED" | "REJECTED") => {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/verifications/${id}/status`,
+      {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // Necesario para Clerk/CORS
         body: JSON.stringify({ status }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || `Error al ${status === "APPROVED" ? "aprobar" : "rechazar"} la verificación.`);
       }
+    );
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(
+        errorData.error ||
+          `Error al ${status === "APPROVED" ? "aprobar" : "rechazar"} la verificación.`
+      );
+    }
 
       // La actualización se reflejará a través de Pusher, así que no se necesita fetchVerifications aquí directamente
       toast.success(`Verificación ${id.substring(0, 8)}... ${status === "APPROVED" ? "aprobada" : "rechazada"} con éxito.`);
@@ -88,32 +103,34 @@ const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/verificati
   };
 
 
-  // Efecto para la carga inicial y la suscripción a Pusher
-  useEffect(() => {
-    fetchVerifications(); // Carga inicial de verificaciones
+ // Efecto para la carga inicial y la suscripción a Pusher
+useEffect(() => {
+  fetchVerifications(); // Carga inicial de verificaciones
 
-    // Asegurarse de que pusherClient está definido y configurado
-    if (!pusherClient) {
-        console.error("Pusher client is not initialized. Check '@/lib/pusher'.");
-        return;
-    }
+  // Verificar que Pusher esté correctamente configurado
+  if (!pusherClient) {
+    console.error("Pusher client is not initialized. Check '@/lib/pusher'.");
+    return;
+  }
 
-    pusherClient.subscribe("admin-verifications"); // Suscribirse al canal de admin
+  // Suscribirse al canal de verificaciones del admin
+  pusherClient.subscribe("admin-verifications");
 
-    // Handler para cuando hay una actualización de verificación (desde el backend via Pusher)
-    const handler = () => {
-      console.log("🔔 Verificación actualizada - recargando lista");
-      fetchVerifications(); // Recarga la lista para reflejar los cambios
-    };
+  // Manejador del evento que indica que hubo una actualización
+  const handler = () => {
+    console.log("🔔 Verificación actualizada - recargando lista");
+    fetchVerifications();
+  };
 
-    pusherClient.bind("admin-verifications-updated", handler); // Enlazar el evento
+  pusherClient.bind("admin-verifications-updated", handler);
 
-    // Función de limpieza al desmontar el componente
-    return () => {
-      pusherClient.unbind("admin-verifications-updated", handler);
-      pusherClient.unsubscribe("admin-verifications");
-    };
-  }, []); // Se ejecuta solo una vez al montar
+  // Limpiar al desmontar el componente
+  return () => {
+    pusherClient.unbind("admin-verifications-updated", handler);
+    pusherClient.unsubscribe("admin-verifications");
+  };
+}, []);
+
 
   // Helper para mostrar el badge de estado
   const getStatusBadge = (status: "PENDING" | "APPROVED" | "REJECTED") => {
