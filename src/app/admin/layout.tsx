@@ -1,11 +1,30 @@
-// app/admin/layout.tsx
 "use client";
 
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import Sidebar from "@/components/admin/Sidebar";
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, isLoaded } = useUser();
+
+  const hideSidebar = pathname === "/admin/login";
+
+  useEffect(() => {
+    if (isLoaded && user) {
+      const email = user.emailAddresses[0]?.emailAddress;
+      if (email !== "info@caibo.ca") {
+        router.push("/dashboard"); // 🔁 redirige si no es admin
+      }
+    }
+  }, [user, isLoaded, router]);
+
   return (
-    <div style={{ backgroundColor: 'orange', padding: '20px', minHeight: '100vh', color: 'black' }}>
-      <h1>LAYOUT ADMIN DE PRUEBA EN PRODUCCIÓN</h1>
-      {children}
+    <div className="flex min-h-screen bg-black text-white">
+      {!hideSidebar && <Sidebar />}
+      <main className="flex-1 p-6">{children}</main>
     </div>
   );
 }
