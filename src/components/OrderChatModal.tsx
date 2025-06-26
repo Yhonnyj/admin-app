@@ -89,19 +89,26 @@ export default function OrderChatModal({ orderId, isOpen, onClose, orderData }: 
   };
 
   const fetchMessages = useCallback(async () => {
-    setFetchingMessages(true);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL} /api/orders/${orderId}/messages`);
-      if (!res.ok) throw new Error('Failed to fetch messages');
-      const data = await res.json();
-      setMessages(data);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-      toast.error("Error al cargar mensajes.");
-    } finally {
-      setFetchingMessages(false);
-    }
-  }, [orderId]);
+  setFetchingMessages(true);
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/orders/${orderId}/messages`,
+      {
+        credentials: "include", // ✅ importante para Clerk con CORS
+      }
+    );
+
+    if (!res.ok) throw new Error("Failed to fetch messages");
+    const data = await res.json();
+    setMessages(data);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    toast.error("Error al cargar mensajes.");
+  } finally {
+    setFetchingMessages(false);
+  }
+}, [orderId]);
+
 
   useEffect(() => {
     const handleFocus = () => (windowFocusedRef.current = true);
@@ -203,11 +210,16 @@ channel.bind("new-message", (data: Message) => {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      try {
-        const uploadResponse = await fetch('${process.env.NEXT_PUBLIC_API_URL} /api/upload-image', {
-          method: 'POST',
-          body: formData,
-        });
+     try {
+  const uploadResponse = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/upload-image`,
+    {
+      method: "POST",
+      body: formData,
+      credentials: "include", // ✅ necesario si usas Clerk + CORS
+    }
+  );
+
 
         if (!uploadResponse.ok) {
           const errorData = await uploadResponse.json();
@@ -241,11 +253,12 @@ channel.bind("new-message", (data: Message) => {
     }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders/${orderId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(messagePayload),
-      });
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders/${orderId}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(messagePayload),
+    credentials: "include", // ✅ necesario para incluir la cookie de sesión
+  });
 
       if (res.ok) {
         setNewMessage("");
